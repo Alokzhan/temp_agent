@@ -3,11 +3,6 @@
   "buildCommand": "pnpm run build",
   "framework": "vite",
   "outputDirectory": "artifacts/tempsynth/dist/public",
-  "projectSettings": {
-    "installCommand": "pnpm install --frozen-lockfile",
-    "buildCommand": "pnpm run build",
-    "outputDirectory": "artifacts/tempsynth/dist/public"
-  },
   "rewrites": [
     {
       "source": "/api/:path*",
