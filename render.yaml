@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: tempsynth-api
+    env: node
+    plan: free
+    region: oregon
+    
+    # Build settings
+    buildCommand: cd . && pnpm install --frozen-lockfile && pnpm run build
+    startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
+    
+    # Environment
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        scope: runtime
+      - key: LOG_LEVEL
+        value: info
+    
+    # Health check
+    healthCheckPath: /api
+    
+    # Auto-deploy on push
+    autoDeploy: true
