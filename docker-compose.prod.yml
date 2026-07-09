@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  api-server:
+    build:
+      context: .
+      target: api-server
+      dockerfile: Dockerfile.prod
+    container_name: tempsynth-api
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - DATABASE_URL=${DATABASE_URL:-}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - tempsynth-network
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+      dockerfile: Dockerfile.prod
+    container_name: tempsynth-web
+    ports:
+      - "80:80"
+    depends_on:
+      - api-server
+    networks:
+      - tempsynth-network
+
+networks:
+  tempsynth-network:
+    driver: bridge

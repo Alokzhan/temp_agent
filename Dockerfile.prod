@@ -1,0 +1,74 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy workspace files
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY lib ./lib
+COPY artifacts ./artifacts
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Build all packages
+RUN pnpm run build
+
+# Production stage - API Server
+FROM node:20-alpine AS api-server
+
+WORKDIR /app
+
+RUN npm install -g pnpm
+
+# Copy only production dependencies
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY lib ./lib
+COPY artifacts/api-server ./artifacts/api-server
+
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built artifacts from builder
+COPY --from=builder /app/lib/db/dist ./lib/db/dist
+COPY --from=builder /app/lib/api-zod/dist ./lib/api-zod/dist
+COPY --from=builder /app/lib/api-client-react/dist ./lib/api-client-react/dist
+COPY --from=builder /app/artifacts/api-server/dist ./artifacts/api-server/dist
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+EXPOSE 8080
+
+CMD ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
+
+---
+
+# Production stage - Frontend
+FROM node:20-alpine AS frontend
+
+WORKDIR /app
+
+RUN npm install -g pnpm
+
+# Copy workspace files  
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY lib ./lib
+COPY artifacts/tempsynth ./artifacts/tempsynth
+
+RUN pnpm install --frozen-lockfile
+
+# Build frontend
+RUN cd artifacts/tempsynth && pnpm run build
+
+# Serve with nginx
+FROM nginx:alpine
+
+COPY --from=frontend /app/artifacts/tempsynth/dist/public /usr/share/nginx/html
+
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

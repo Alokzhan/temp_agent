@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm run build",
+  "framework": "vite",
+  "projectSettings": {
+    "installCommand": "pnpm install --frozen-lockfile",
+    "buildCommand": "pnpm run build"
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
+}
