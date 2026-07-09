@@ -1,0 +1,291 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: TempSynth Agentic AI - Synthetic Weather Data Generation API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: tempsynth
+    description: TempSynth synthetic data generation pipeline
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /tempsynth/generate:
+    post:
+      operationId: generateSyntheticData
+      tags: [tempsynth]
+      summary: Run multi-agent synthetic data generation pipeline
+      description: Runs the full agentic pipeline on input temperature data and generates synthetic data for target months
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateInput"
+      responses:
+        "200":
+          description: Pipeline result with synthetic data and validation metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /tempsynth/sample-data:
+    get:
+      operationId: getSampleData
+      tags: [tempsynth]
+      summary: Get sample Jan-Feb temperature dataset
+      description: Returns a built-in sample dataset for Jan and Feb
+      responses:
+        "200":
+          description: Sample temperature records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SampleDataResponse"
+
+  /tempsynth/pipeline-status:
+    get:
+      operationId: getPipelineStatus
+      tags: [tempsynth]
+      summary: Get pipeline info and agent descriptions
+      description: Returns info about each AI agent in the pipeline
+      responses:
+        "200":
+          description: Pipeline agent descriptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineStatusResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    TemperatureRecord:
+      type: object
+      properties:
+        date:
+          type: string
+          description: Date in YYYY-MM-DD format
+        min_temp:
+          type: number
+          description: Minimum temperature in Celsius
+        max_temp:
+          type: number
+          description: Maximum temperature in Celsius
+        avg_temp:
+          type: number
+          description: Average temperature in Celsius
+      required:
+        - date
+        - min_temp
+        - max_temp
+        - avg_temp
+
+    GenerateInput:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemperatureRecord"
+          description: Input historical temperature records (Jan-Feb)
+        target_months:
+          type: array
+          items:
+            type: integer
+          description: Target months to generate (e.g. [3, 4] for March and April)
+        target_year:
+          type: integer
+          description: Year for generated data
+      required:
+        - records
+        - target_months
+        - target_year
+
+    AgentLog:
+      type: object
+      properties:
+        agent:
+          type: string
+          description: Name of the agent
+        status:
+          type: string
+          enum: [running, success, failed, skipped]
+        message:
+          type: string
+          description: Agent output/log message
+        duration_ms:
+          type: integer
+          description: Time taken in milliseconds
+      required:
+        - agent
+        - status
+        - message
+        - duration_ms
+
+    ValidationMetrics:
+      type: object
+      properties:
+        mean_diff:
+          type: number
+          description: Difference in means between real and synthetic
+        std_diff:
+          type: number
+          description: Difference in standard deviations
+        correlation:
+          type: number
+          description: Correlation between real trend and synthetic trend
+        rmse:
+          type: number
+          description: Root mean squared error vs expected seasonal trend
+        passed:
+          type: boolean
+          description: Whether validation passed quality thresholds
+        quality_score:
+          type: number
+          description: Overall quality score 0-100
+      required:
+        - mean_diff
+        - std_diff
+        - correlation
+        - rmse
+        - passed
+        - quality_score
+
+    AnalysisSummary:
+      type: object
+      properties:
+        input_mean:
+          type: number
+        input_std:
+          type: number
+        seasonal_trend:
+          type: string
+        detected_pattern:
+          type: string
+        ai_insights:
+          type: string
+          description: LLM-generated analytical insights about the data
+      required:
+        - input_mean
+        - input_std
+        - seasonal_trend
+        - detected_pattern
+        - ai_insights
+
+    PipelineResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        agent_logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentLog"
+        synthetic_records:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemperatureRecord"
+        validation:
+          $ref: "#/components/schemas/ValidationMetrics"
+        analysis:
+          $ref: "#/components/schemas/AnalysisSummary"
+        report_summary:
+          type: string
+          description: LLM-generated human-readable report
+        total_duration_ms:
+          type: integer
+        refinement_iterations:
+          type: integer
+      required:
+        - success
+        - agent_logs
+        - synthetic_records
+        - validation
+        - analysis
+        - report_summary
+        - total_duration_ms
+        - refinement_iterations
+
+    SampleDataResponse:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemperatureRecord"
+        description:
+          type: string
+      required:
+        - records
+        - description
+
+    AgentDescription:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        description:
+          type: string
+        order:
+          type: integer
+      required:
+        - name
+        - role
+        - description
+        - order
+
+    PipelineStatusResponse:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentDescription"
+        pipeline_description:
+          type: string
+      required:
+        - agents
+        - pipeline_description
