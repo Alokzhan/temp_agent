@@ -6,7 +6,7 @@ services:
     region: oregon
     
     # Build settings
-    buildCommand: cd . && pnpm install --frozen-lockfile && pnpm run build
+    buildCommand: pnpm install --frozen-lockfile && pnpm -r build
     startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
     
     # Environment
